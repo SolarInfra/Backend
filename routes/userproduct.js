@@ -154,52 +154,6 @@ router.post('/assign', fetchuser, async (req, res) => {
 
 
 
-
-
-//Route:1 Assign User to Products
-// router.post('/redeem/:rewardId', fetchuser, async (req, res) => {
-//   try {
-//     const userId = req.user.id;
-//     const rewardId = req.params.rewardId;
-
-//     const user = await User.findById(userId);
-//     if (!user) {
-//       return res.status(404).json({ error: 'User not found' });
-//     }
-
-//     const reward = await Reward.findById(rewardId);
-//     if (!reward) {
-//       return res.status(404).json({ error: 'Reward not found' });
-//     }
-
-//     const rewardCost = Number(reward.coins);
-
-//     if (user.refcoins < rewardCost) {
-//       return res.status(400).json({ error: 'Not enough coins.' });
-//     }
-
-//     user.refcoins -= rewardCost;
-//     await user.save();
-
-//     // ✅ This must run to create the doc:
-//     const redemption = new Redemption({
-//       user: user._id,
-//       reward: reward._id,
-//       status: 'pending',
-//     });
-
-//     await redemption.save(); // <-- same pattern as your assign route!
-
-//     res.status(201).json({ message: 'Reward redeemed successfully', redemption });
-
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: 'Server error' });
-//   }
-// });
-
-
-
 router.post('/redeem/:rewardId', fetchuser, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -251,9 +205,6 @@ router.post('/redeem/:rewardId', fetchuser, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
-
-
 
 
 
