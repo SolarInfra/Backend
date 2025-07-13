@@ -20,6 +20,10 @@ const UserProductSchema = mongoose.Schema({
         type: Boolean,
         required: true
     },
+    isPaid: {
+        type: Boolean, 
+        default: false
+    },
      lastIncomeUpdate: { 
         type: Date, 
         default: Date.now
