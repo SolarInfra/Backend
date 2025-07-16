@@ -1,4 +1,5 @@
 const express = require('express');
+const cron = require('node-cron');
 require('dotenv').config();
 const axios = require('axios');
 const {body, validationResult} = require('express-validator');
@@ -842,47 +843,257 @@ router.patch('/recharge/:id/reject', async (req, res) => {
 
 
 
+
+// async function updateTotalIncomeForAllUsers() {
+//   const allUserProducts = await UserProduct.find({ isActive: true }).populate('product');
+
+//   const groupedByUser = {};
+
+//   for (const up of allUserProducts) {
+//     const parseIncomeString = (str) => {
+//       const num = str.toLowerCase().trim();
+//       if (num.includes('k')) {
+//         return parseFloat(num.replace('k', '')) * 1000;
+//       } else if (num.includes('l')) {
+//         return parseFloat(num.replace('l', '')) * 100000;
+//       } else {
+//         return parseFloat(num);
+//       }
+//     };
+//     const parseDurationString = (str) => parseInt(str.replace(/[^\d]/g, ''));
+
+//     const dailyIncome = parseIncomeString(up.product.dailyIncome);
+//     const durationDays = parseDurationString(up.product.duration);
+
+//     const purchaseDate = new Date(up.createdAt);
+//     const today = new Date();
+
+//     const lastUpdate = up.lastIncomeUpdate || purchaseDate;
+//     const daysSinceLast = Math.floor((today - lastUpdate) / (1000 * 60 * 60 * 24));
+//     const daysPassed = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
+//     const remainingDays = durationDays - Math.floor((lastUpdate - purchaseDate) / (1000 * 60 * 60 * 24));
+//     const newDays = Math.min(daysSinceLast, remainingDays);
+
+//     const newEarnings = newDays > 0 ? newDays * dailyIncome : 0;
+
+//     if (!groupedByUser[up.user]) {
+//       groupedByUser[up.user] = 0;
+//     }
+//     groupedByUser[up.user] += newEarnings;
+
+//     up.lastIncomeUpdate = today;
+//     await up.save();
+//   }
+
+//   for (const userId in groupedByUser) {
+//     const user = await User.findById(userId);
+//     user.currentBalance += groupedByUser[userId];
+//     await user.save();
+//   }
+
+//   console.log('✅ Daily income update ran at', new Date().toISOString());
+// }
+
+
+// router.post('/updatetotalincome', fetchuser, async (req, res) => {
+//   try {
+//     await updateTotalIncomeForAllUsers();
+//     res.json({ message: 'Total income updated ✅' });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server error');
+//   }
+// });
+
+
+
+// router.post('/updatetotalincome', fetchuser, async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+
+//     const userProducts = await UserProduct.find({ user: userId, isActive: true }).populate('product');
+
+//     let totalGenerated = 0;
+
+//     for (const up of userProducts) {
+//       // Helper stays same
+//       const parseIncomeString = (str) => {
+//         const num = str.toLowerCase().trim();
+//         if (num.includes('k')) {
+//           return parseFloat(num.replace('k', '')) * 1000;
+//         } else if (num.includes('l')) {
+//           return parseFloat(num.replace('l', '')) * 100000;
+//         } else {
+//           return parseFloat(num);
+//         }
+//       };
+//       const parseDurationString = (str) => parseInt(str.replace(/[^\d]/g, ''));
+
+//       const dailyIncome = parseIncomeString(up.product.dailyIncome);
+//       const durationDays = parseDurationString(up.product.duration);
+
+//       const purchaseDate = new Date(up.createdAt);
+//       const today = new Date();
+
+//       const lastUpdate = up.lastIncomeUpdate || purchaseDate;
+//       const daysPassed = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
+//       const daysSinceLast = Math.floor((today - lastUpdate) / (1000 * 60 * 60 * 24));
+
+//       const remainingDays = durationDays - Math.floor((lastUpdate - purchaseDate) / (1000 * 60 * 60 * 24));
+//       const newDays = Math.min(daysSinceLast, remainingDays);
+
+//       const newEarnings = newDays > 0 ? newDays * dailyIncome : 0;
+//       totalGenerated += newEarnings;
+
+//       // Update lastIncomeUpdate
+//       up.lastIncomeUpdate = today;
+//       await up.save();
+//     }
+
+//     const user = await User.findById(userId);
+//     user.currentBalance += totalGenerated;
+//     await user.save();
+
+//     res.json({
+//       message: 'Total income updated',
+//       added: totalGenerated,
+//       totalIncome: user.currentBalance,
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server error');
+//   }
+// });
+
+
+
+// router.post('/updatefixedincome', fetchuser, async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+
+//     const userProducts = await UserProduct.find({
+//       user: userId,
+//       isActive: true,
+//       isPaid: false,
+//     }).populate('product');
+
+//     let totalFixedGenerated = 0;
+
+//     for (const up of userProducts) {
+//       if (up.product.type !== 'fixed') continue;
+
+//       const parseIncomeString = (str) => {
+//         const num = str.toLowerCase().trim();
+//         if (num.includes('k')) return parseFloat(num.replace('k', '')) * 1000;
+//         if (num.includes('l')) return parseFloat(num.replace('l', '')) * 100000;
+//         return parseFloat(num);
+//       };
+//       const parseDurationString = (str) => parseInt(str.replace(/[^\d]/g, ''));
+
+//       const durationDays = parseDurationString(up.product.duration || '0');
+//       const purchaseDate = new Date(up.createdAt);
+//       const today = new Date();
+
+//       const endDate = new Date(purchaseDate);
+//       endDate.setDate(endDate.getDate() + durationDays);
+
+//       if (today >= endDate && !up.isPaid) {
+//         const fixedProfit = parseIncomeString(up.product.totalReturn || '0');
+
+//         totalFixedGenerated += fixedProfit;
+
+//         // ✅ Save isPaid but don't await inside loop
+//         up.isPaid = true;
+//         await up.save();
+//       }
+//     }
+
+//     if (totalFixedGenerated > 0) {
+//       console.log(`✅ Adding ${totalFixedGenerated} to user balance`);
+//       await User.findByIdAndUpdate(userId, { $inc: { currentBalance: totalFixedGenerated } });
+//     } else {
+//       console.log(`❌ Nothing to pay`);
+//     }
+
+//     res.json({
+//       message: 'Fixed plan payout completed',
+//       added: totalFixedGenerated,
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server error');
+//   }
+// });
+
+
+
+
 router.post('/updatetotalincome', fetchuser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const userProducts = await UserProduct.find({ user: userId, isActive: true }).populate('product');
+    const userProducts = await UserProduct.find({
+      user: userId,
+      isActive: true,
+    }).populate('product');
 
     let totalGenerated = 0;
 
     for (const up of userProducts) {
-      // Helper stays same
+      // parse helpers
       const parseIncomeString = (str) => {
         const num = str.toLowerCase().trim();
-        if (num.includes('k')) {
-          return parseFloat(num.replace('k', '')) * 1000;
-        } else if (num.includes('l')) {
-          return parseFloat(num.replace('l', '')) * 100000;
-        } else {
-          return parseFloat(num);
-        }
+        if (num.includes('k')) return parseFloat(num.replace('k', '')) * 1000;
+        if (num.includes('l')) return parseFloat(num.replace('l', '')) * 100000;
+        if (num.includes('cr')) return parseFloat(num.replace('cr', '')) * 10000000;
+        return parseFloat(num);
       };
-      const parseDurationString = (str) => parseInt(str.replace(/[^\d]/g, ''));
 
-      const dailyIncome = parseIncomeString(up.product.dailyIncome);
-      const durationDays = parseDurationString(up.product.duration);
+      const parseDuration = (str) => parseInt(str.replace(/[^\d]/g, ''));
 
-      const purchaseDate = new Date(up.createdAt);
+      const dailyIncome = parseIncomeString(up.product.dailyIncome || '0');
+      const durationDays = parseDuration(up.product.duration || '0');
+
+      const purchaseDate = new Date(up.purchasedAt);
       const today = new Date();
 
       const lastUpdate = up.lastIncomeUpdate || purchaseDate;
-      const daysPassed = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
+
+      // How many full days passed since last payout?
       const daysSinceLast = Math.floor((today - lastUpdate) / (1000 * 60 * 60 * 24));
+      const totalDaysPassed = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
+      const remainingDays = durationDays - totalDaysPassed;
 
-      const remainingDays = durationDays - Math.floor((lastUpdate - purchaseDate) / (1000 * 60 * 60 * 24));
-      const newDays = Math.min(daysSinceLast, remainingDays);
+      if (remainingDays <= 0) {
+        up.isActive = false; // Mark product as expired
+      }
 
-      const newEarnings = newDays > 0 ? newDays * dailyIncome : 0;
-      totalGenerated += newEarnings;
+      if (up.product.type === 'fixed') {
+        // payout once at the end
+        const endDate = new Date(purchaseDate);
+        endDate.setDate(endDate.getDate() + durationDays);
 
-      // Update lastIncomeUpdate
-      up.lastIncomeUpdate = today;
-      await up.save();
+        if (today >= endDate && !up.isPaid) {
+          const fixedProfit = parseIncomeString(up.product.totalReturn || '0');
+          totalGenerated += fixedProfit;
+
+          up.isPaid = true;
+          up.isActive = false;
+          await up.save();
+        }
+      } else {
+        // daily payout
+        const newDays = Math.min(daysSinceLast, remainingDays);
+        if (newDays > 0) {
+          const newEarnings = newDays * dailyIncome;
+          totalGenerated += newEarnings;
+
+          up.lastIncomeUpdate = today;
+          await up.save();
+        }
+      }
     }
 
     const user = await User.findById(userId);
@@ -901,66 +1112,6 @@ router.post('/updatetotalincome', fetchuser, async (req, res) => {
   }
 });
 
-
-
-router.post('/updatefixedincome', fetchuser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const userProducts = await UserProduct.find({
-      user: userId,
-      isActive: true,
-      isPaid: false,
-    }).populate('product');
-
-    let totalFixedGenerated = 0;
-
-    for (const up of userProducts) {
-      if (up.product.type !== 'fixed') continue;
-
-      const parseIncomeString = (str) => {
-        const num = str.toLowerCase().trim();
-        if (num.includes('k')) return parseFloat(num.replace('k', '')) * 1000;
-        if (num.includes('l')) return parseFloat(num.replace('l', '')) * 100000;
-        return parseFloat(num);
-      };
-      const parseDurationString = (str) => parseInt(str.replace(/[^\d]/g, ''));
-
-      const durationDays = parseDurationString(up.product.duration || '0');
-      const purchaseDate = new Date(up.createdAt);
-      const today = new Date();
-
-      const endDate = new Date(purchaseDate);
-      endDate.setDate(endDate.getDate() + durationDays);
-
-      if (today >= endDate && !up.isPaid) {
-        const fixedProfit = parseIncomeString(up.product.totalReturn || '0');
-
-        totalFixedGenerated += fixedProfit;
-
-        // ✅ Save isPaid but don't await inside loop
-        up.isPaid = true;
-        await up.save();
-      }
-    }
-
-    if (totalFixedGenerated > 0) {
-      console.log(`✅ Adding ${totalFixedGenerated} to user balance`);
-      await User.findByIdAndUpdate(userId, { $inc: { currentBalance: totalFixedGenerated } });
-    } else {
-      console.log(`❌ Nothing to pay`);
-    }
-
-    res.json({
-      message: 'Fixed plan payout completed',
-      added: totalFixedGenerated,
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
-  }
-});
 
 
 
