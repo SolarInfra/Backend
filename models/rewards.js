@@ -19,7 +19,6 @@ const RewardSchema = new mongoose.Schema({
   },
   discountCoins: {
     type: String,
-    required: true
   },
   image: {
     type: String  // e.g. "/uploads/reward1.jpg"
